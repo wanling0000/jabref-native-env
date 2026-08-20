@@ -1,20 +1,35 @@
 # jabref-native-env
 
-One-shot provisioning to build & test **JabRef native images** (GraalVM Native Image via
-BellSoft **Liberica NIK Full**, which bundles JavaFX + `native-image`).
+One-shot provisioning to build & test **JabRef native images** (GraalVM Native Image).
+
+The **baseline** toolchain is plain **GraalVM** (Community Edition) — that's what JabLS
+targets. **BellSoft Liberica NIK Full** is only pulled in for the modules that reach
+**AWT / JavaFX**: JabKit (PDFBox → AWT) and JabSrv / JabGui (the CAYW JavaFX GUI). It
+bundles JavaFX + the AWT native backend. In other words, Liberica is a forced exception,
+not the goal. (JabKit is transitioning off Liberica as the PDFBox AWT need is resolved
+upstream; on branches where it still hits AWT it stays on Liberica.)
+
+You tell the script **which module(s)** you want to build; it installs **only** the
+toolchain(s) and system libraries those need — GraalVM CE for JabLS; Liberica NIK Full for
+JabKit (AWT) and JabSrv/JabGui (JavaFX, plus the GTK/X11/GL stack). Nothing extra on a
+small box.
 
 Keeps the environment setup out of the JabRef repo so it can be reused across
 JabKit / JabLS / JabSrv / JabGui.
 
 ## What `setup-native-env.sh` does
 
+Given the requested module(s), it installs only what they need:
+
 1. **Preflight** — aborts unless: Debian/Ubuntu (`apt`), `x86_64`, and root/`sudo`.
    Soft-warns on low disk (< 10 GB).
-2. **System dev libraries** — GTK / X11 / GL headers needed to *link* JavaFX native
-   (jabsrv/jabgui), plus `xvfb` / `mesa` / `imagemagick` for headless rendering.
-3. **Toolchain** — installs `mise` and the Liberica NIK Full JDK, then verifies it
-   really ships JavaFX modules + `native-image`.
-4. **GPU / display capability** — prints, per module, whether CAYW can be verified here.
+2. **System dev libraries** — base build tools always; GTK / X11 / GL + `xvfb` / `mesa` /
+   `imagemagick` **only** for JavaFX modules (jabsrv/jabgui); just `fontconfig`/`freetype`
+   for JabKit's headless AWT.
+3. **Toolchain(s)** via `mise` — GraalVM CE for jabls, Liberica NIK Full for
+   jabkit/jabsrv/jabgui; each verified to ship `native-image` (and JavaFX for Liberica).
+4. **GPU / display capability** — printed only when a JavaFX module was requested
+   (whether CAYW can be verified interactively here).
 
 ## Requirements
 
@@ -25,16 +40,18 @@ JabKit / JabLS / JabSrv / JabGui.
 ## Usage
 
 ```bash
-./setup-native-env.sh
-# override the JDK:      NIK="java@..." ./setup-native-env.sh
-# override disk warning: MIN_DISK_GB=8 ./setup-native-env.sh
+./setup-native-env.sh <module>...        # jabkit | jabls | jabsrv | jabgui | all
+# e.g.
+./setup-native-env.sh jabls              # GraalVM CE only, no GTK/GPU
+./setup-native-env.sh jabsrv             # Liberica Full + GTK/X11/GL + GPU check
+./setup-native-env.sh jabkit jabsrv      # both toolchains
+
+# overrides:
+GRAALVM="java@..." LIBERICA="java@..." MIN_DISK_GB=8 ./setup-native-env.sh jabsrv
 ```
 
-Then build **inside your JabRef checkout**, e.g.:
-
-```bash
-mise exec java@liberica-nik-javafx-openjdk25-25.0.4+1 -- ./gradlew :jabkit:nativeCompile
-```
+The script prints the exact `mise exec ... ./gradlew ...` commands for the modules you
+picked. Run them **inside your JabRef checkout**.
 
 ## GPU / display
 
