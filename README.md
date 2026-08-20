@@ -37,21 +37,36 @@ Given the requested module(s), it installs only what they need:
 - root or `sudo` for `apt`.
 - **~8 GB+ RAM** for native-image compilation (it is memory-heavy), ~10 GB free disk.
 
-## Usage
+## Quick start (blank Ubuntu/Debian x86_64 box)
 
 ```bash
-./setup-native-env.sh <module>...        # jabkit | jabls | jabsrv | jabgui | all
-# e.g.
-./setup-native-env.sh jabls              # GraalVM CE only, no GTK/GPU
-./setup-native-env.sh jabsrv             # Liberica Full + GTK/X11/GL + GPU check
-./setup-native-env.sh jabkit jabsrv      # both toolchains
-
-# overrides:
-GRAALVM="java@..." LIBERICA="java@..." MIN_DISK_GB=8 ./setup-native-env.sh jabsrv
+git clone https://github.com/wanling0000/jabref-native-env.git
+cd jabref-native-env
+./setup-native-env.sh jabsrv          # pick: jabkit | jabls | jabsrv | jabgui | all
 ```
 
-The script prints the exact `mise exec ... ./gradlew ...` commands for the modules you
-picked. Run them **inside your JabRef checkout**.
+The script installs the toolchain and **prints the exact build command** for what you
+picked. Then get JabRef and run that command inside it:
+
+```bash
+# mise was just installed; make it available in this shell:
+export PATH="$HOME/.local/bin:$PATH"
+
+cd ~
+git clone --depth 1 --recurse-submodules https://github.com/JabRef/jabref.git
+cd jabref
+# ...paste the `mise exec ... ./gradlew ...` line the script printed...
+```
+
+(Use your own fork + `git checkout <branch>` instead of upstream when building WIP work.)
+
+## Options
+
+```bash
+./setup-native-env.sh jabls               # GraalVM CE only, no GTK/GPU
+./setup-native-env.sh jabkit jabsrv       # both toolchains
+GRAALVM="java@..." LIBERICA="java@..." MIN_DISK_GB=8 ./setup-native-env.sh jabsrv
+```
 
 ## GPU / display
 
